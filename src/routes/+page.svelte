@@ -3,7 +3,12 @@
   import { Spinner } from "$lib/components/ui/spinner";
   import { Button } from "$lib/components/ui/button";
   import { tick, onMount } from "svelte";
-  import { getCurrentWindow, currentMonitor, LogicalSize } from "@tauri-apps/api/window";
+  import { marked } from "marked";
+  import {
+    getCurrentWindow,
+    currentMonitor,
+    LogicalSize,
+  } from "@tauri-apps/api/window";
   import { invoke } from "@tauri-apps/api/core";
 
   interface Message {
@@ -26,6 +31,16 @@
   let apiKey = $state("");
   let selectedModel = $state("openai/gpt-oss-120b");
 
+  // Configure marked options
+  marked.setOptions({
+    breaks: true,
+    gfm: true,
+  });
+
+  function renderMarkdown(content: string): string {
+    return marked.parse(content) as string;
+  }
+
   onMount(async () => {
     try {
       const settings = await invoke<Settings>("load_settings");
@@ -44,7 +59,7 @@
 
   async function resizeWindowTo70Percent() {
     if (hasResized) return;
-    
+
     try {
       const monitor = await currentMonitor();
       if (monitor) {
@@ -68,8 +83,14 @@
   }
 
   async function sendMessage() {
-    const content = inputValue.trim();
-    if (!content || isLoading) return;
+    const rawContent = inputValue.trim();
+    if (!rawContent || isLoading) return;
+
+    // Check for web search command
+    const useWebSearch = rawContent.startsWith("/s ");
+    const content = useWebSearch ? rawContent.slice(3).trim() : rawContent;
+
+    if (!content) return;
 
     // Resize window on first message
     if (!hasMessages) {
@@ -94,6 +115,28 @@
         return;
       }
 
+      // Build request body
+      const requestBody: Record<string, unknown> = {
+        model: useWebSearch ? `${selectedModel}:online` : selectedModel,
+        provider: {
+          sort: "throughput",
+        },
+        messages: messages.map((m) => ({
+          role: m.role,
+          content: m.content,
+        })),
+      };
+
+      // Add web search plugin if using /s command
+      if (useWebSearch) {
+        requestBody.plugins = [
+          {
+            id: "web",
+            max_results: 5,
+          },
+        ];
+      }
+
       const response = await fetch(
         "https://openrouter.ai/api/v1/chat/completions",
         {
@@ -102,16 +145,7 @@
             Authorization: `Bearer ${apiKey}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            model: selectedModel,
-            provider: {
-              sort: "throughput",
-            },
-            messages: messages.map((m) => ({
-              role: m.role,
-              content: m.content,
-            })),
-          }),
+          body: JSON.stringify(requestBody),
         }
       );
 
@@ -146,10 +180,27 @@
 </script>
 
 <main class="container" class:has-messages={hasMessages}>
-  <Button variant="ghost" size="icon" class="settings-button" onclick={openSettings}>
-    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
-      <circle cx="12" cy="12" r="3"/>
+  <Button
+    variant="ghost"
+    size="icon"
+    class="settings-button"
+    onclick={openSettings}
+  >
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <path
+        d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"
+      />
+      <circle cx="12" cy="12" r="3" />
     </svg>
   </Button>
 
@@ -157,9 +208,15 @@
     <div class="messages-area" bind:this={messagesContainer}>
       {#each messages as message}
         <div class="message {message.role}">
-          <div class="message-content">
-            {message.content}
-          </div>
+          {#if message.role === "assistant"}
+            <div class="message-content prose prose-sm dark:prose-invert max-w-none">
+              {@html renderMarkdown(message.content)}
+            </div>
+          {:else}
+            <div class="message-content">
+              {message.content}
+            </div>
+          {/if}
         </div>
       {/each}
       {#if isLoading}
@@ -252,6 +309,86 @@
     background: var(--card);
     color: var(--card-foreground);
     border: 1px solid var(--border);
+  }
+
+  /* Markdown prose styling overrides */
+  .message.assistant .message-content :global(p) {
+    margin: 0.5em 0;
+  }
+
+  .message.assistant .message-content :global(p:first-child) {
+    margin-top: 0;
+  }
+
+  .message.assistant .message-content :global(p:last-child) {
+    margin-bottom: 0;
+  }
+
+  .message.assistant .message-content :global(pre) {
+    background: var(--muted);
+    border-radius: 8px;
+    padding: 12px;
+    overflow-x: auto;
+    margin: 0.5em 0;
+  }
+
+  .message.assistant .message-content :global(code) {
+    background: var(--muted);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.875em;
+  }
+
+  .message.assistant .message-content :global(pre code) {
+    background: transparent;
+    padding: 0;
+  }
+
+  .message.assistant .message-content :global(ul),
+  .message.assistant .message-content :global(ol) {
+    margin: 0.5em 0;
+    padding-left: 1.5em;
+  }
+
+  .message.assistant .message-content :global(li) {
+    margin: 0.25em 0;
+  }
+
+  .message.assistant .message-content :global(a) {
+    color: var(--primary);
+    text-decoration: underline;
+  }
+
+  .message.assistant .message-content :global(blockquote) {
+    border-left: 3px solid var(--border);
+    padding-left: 1em;
+    margin: 0.5em 0;
+    color: var(--muted-foreground);
+  }
+
+  .message.assistant .message-content :global(h1),
+  .message.assistant .message-content :global(h2),
+  .message.assistant .message-content :global(h3),
+  .message.assistant .message-content :global(h4) {
+    margin: 0.75em 0 0.5em 0;
+    font-weight: 600;
+  }
+
+  .message.assistant .message-content :global(table) {
+    border-collapse: collapse;
+    margin: 0.5em 0;
+    width: 100%;
+  }
+
+  .message.assistant .message-content :global(th),
+  .message.assistant .message-content :global(td) {
+    border: 1px solid var(--border);
+    padding: 8px;
+    text-align: left;
+  }
+
+  .message.assistant .message-content :global(th) {
+    background: var(--muted);
   }
 
   .message-content.loading {
