@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -6,8 +6,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Tauri + SvelteKit + Typescript App</title>
     %sveltekit.head%
+
+    <style>
+      .titlebar {
+        height: 30px;
+        background: #329ea3;
+        user-select: none;
+        display: grid;
+        grid-template-columns: auto max-content;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+      }
+    </style>
   </head>
   <body data-sveltekit-preload-data="hover">
+    <!-- <div class="titlebar">
+      <div data-tauri-drag-region></div>
+    </div> -->
     <div style="display: contents">%sveltekit.body%</div>
   </body>
 </html>
