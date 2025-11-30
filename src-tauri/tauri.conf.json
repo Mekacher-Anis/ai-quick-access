@@ -18,6 +18,18 @@
         "decorations": false,
         "transparent": true,
         "center": true
+      },
+      {
+        "label": "settings",
+        "title": "Settings",
+        "url": "/settings",
+        "width": 450,
+        "height": 500,
+        "decorations": true,
+        "transparent": false,
+        "center": true,
+        "visible": false,
+        "resizable": false
       }
     ],
     "security": {
