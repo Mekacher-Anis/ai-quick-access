@@ -488,14 +488,29 @@
     padding: 0;
   }
 
-  .message.assistant .message-content :global(ul),
+  .message.assistant .message-content :global(ul) {
+    margin: 0.5em 0;
+    padding-left: 1.5em;
+    list-style-type: disc;
+  }
+
   .message.assistant .message-content :global(ol) {
     margin: 0.5em 0;
     padding-left: 1.5em;
+    list-style-type: decimal;
+  }
+
+  .message.assistant .message-content :global(ul ul) {
+    list-style-type: circle;
+  }
+
+  .message.assistant .message-content :global(ul ul ul) {
+    list-style-type: square;
   }
 
   .message.assistant .message-content :global(li) {
     margin: 0.25em 0;
+    display: list-item;
   }
 
   .message.assistant .message-content :global(a) {
