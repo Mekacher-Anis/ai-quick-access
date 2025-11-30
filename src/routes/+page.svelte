@@ -275,6 +275,20 @@
       sendMessage();
     }
   }
+
+  let copiedIndex = $state<number | null>(null);
+
+  async function copyMessage(content: string, index: number) {
+    try {
+      await navigator.clipboard.writeText(content);
+      copiedIndex = index;
+      setTimeout(() => {
+        copiedIndex = null;
+      }, 2000);
+    } catch (error) {
+      console.error("Failed to copy message:", error);
+    }
+  }
 </script>
 
 <main class="container" class:has-messages={hasMessages}>
@@ -304,7 +318,7 @@
 
   {#if hasMessages}
     <div class="messages-area" bind:this={messagesContainer}>
-      {#each messages as message}
+      {#each messages as message, index}
         <div class="message {message.role}">
           {#if message.role === "assistant"}
             <div class="message-content prose prose-sm dark:prose-invert max-w-none">
@@ -315,6 +329,42 @@
               {message.content}
             </div>
           {/if}
+          <button
+            class="copy-button"
+            onclick={() => copyMessage(message.content, index)}
+            title="Copy message"
+          >
+            {#if copiedIndex === index}
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            {:else}
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+                <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+              </svg>
+            {/if}
+          </button>
         </div>
       {/each}
       {#if isLoading}
@@ -377,11 +427,6 @@
     gap: 12px;
     padding-bottom: 16px;
     margin-bottom: 16px;
-  }
-
-  .message {
-    display: flex;
-    max-width: 100%;
   }
 
   .message.user {
@@ -494,6 +539,38 @@
     display: flex;
     align-items: center;
     gap: 8px;
+  }
+
+  .copy-button {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    padding: 4px;
+    background: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    color: var(--muted-foreground);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .copy-button:hover {
+    background: var(--accent);
+    color: var(--accent-foreground);
+  }
+
+  .message:hover .copy-button {
+    opacity: 1;
+  }
+
+  .message {
+    display: flex;
+    max-width: 100%;
+    position: relative;
   }
 
   .input-area {
