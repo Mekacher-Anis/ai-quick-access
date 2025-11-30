@@ -12,9 +12,23 @@
   import { invoke } from "@tauri-apps/api/core";
   import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 
+  interface UrlCitation {
+    url: string;
+    title: string;
+    content?: string;
+    start_index: number;
+    end_index: number;
+  }
+
+  interface Annotation {
+    type: "url_citation";
+    url_citation: UrlCitation;
+  }
+
   interface Message {
     role: "user" | "assistant";
     content: string;
+    annotations?: Annotation[];
   }
 
   interface Settings {
@@ -254,8 +268,9 @@
       const data = await response.json();
       const assistantMessage =
         data.choices[0]?.message?.content || "No response";
+      const annotations = data.choices[0]?.message?.annotations as Annotation[] | undefined;
 
-      messages.push({ role: "assistant", content: assistantMessage });
+      messages.push({ role: "assistant", content: assistantMessage, annotations });
       await scrollToBottom();
     } catch (error) {
       console.error("Error:", error);
@@ -323,6 +338,25 @@
           {#if message.role === "assistant"}
             <div class="message-content prose prose-sm dark:prose-invert max-w-none">
               {@html renderMarkdown(message.content)}
+              {#if message.annotations && message.annotations.length > 0}
+                <div class="references">
+                  <div class="references-header">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                    </svg>
+                    <span>Sources</span>
+                  </div>
+                  <div class="references-list">
+                    {#each message.annotations.filter(a => a.type === "url_citation") as annotation, refIndex}
+                      <a href={annotation.url_citation.url} target="_blank" rel="noopener noreferrer" class="reference-item">
+                        <span class="reference-index">{refIndex + 1}</span>
+                        <span class="reference-title">{annotation.url_citation.title || annotation.url_citation.url}</span>
+                      </a>
+                    {/each}
+                  </div>
+                </div>
+              {/if}
             </div>
           {:else}
             <div class="message-content">
@@ -548,6 +582,70 @@
 
   .message.assistant .message-content :global(th) {
     background: var(--muted);
+  }
+
+  .references {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+
+  .references-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--muted-foreground);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .references-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .reference-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    font-size: 0.75rem;
+    color: var(--foreground);
+    text-decoration: none;
+    transition: all 0.2s ease;
+    max-width: 200px;
+  }
+
+  .reference-item:hover {
+    background: var(--accent);
+    border-color: var(--primary);
+  }
+
+  .reference-index {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    background: var(--primary);
+    color: var(--primary-foreground);
+    border-radius: 50%;
+    font-size: 0.625rem;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  .reference-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .message-content.loading {
