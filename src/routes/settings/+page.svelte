@@ -4,6 +4,7 @@
   import { Label } from "$lib/components/ui/label";
   import { Switch } from "$lib/components/ui/switch";
   import { Separator } from "$lib/components/ui/separator";
+  import { Textarea } from "$lib/components/ui/textarea";
   import * as Select from "$lib/components/ui/select";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { invoke } from "@tauri-apps/api/core";
@@ -14,12 +15,14 @@
     selectedModel: string;
     darkMode: boolean;
     autoStart: boolean;
+    systemPrompt: string;
   }
 
   let apiKey = $state("");
   let selectedModel = $state("openai/gpt-oss-120b");
   let darkMode = $state(true);
   let autoStart = $state(false);
+  let systemPrompt = $state("Keep your responses as concise, precise, to the point.\nAnswer the question in as few words as possible.\nNo Yapping.");
   let isLoading = $state(true);
   let saveMessage = $state("");
   let showSaveMessage = $state(false);
@@ -42,6 +45,7 @@
       selectedModel = settings.selectedModel;
       darkMode = settings.darkMode;
       autoStart = settings.autoStart;
+      systemPrompt = settings.systemPrompt || "";
     } catch (error) {
       console.error("Failed to load settings:", error);
     } finally {
@@ -66,9 +70,10 @@
           selectedModel,
           darkMode,
           autoStart,
+          systemPrompt,
         },
       });
-      console.log("Settings saved:", { apiKey, selectedModel, darkMode, autoStart });
+      console.log("Settings saved:", { apiKey, selectedModel, darkMode, autoStart, systemPrompt });
       saveMessage = "Settings saved successfully!";
       showSaveMessage = true;
       setTimeout(() => {
@@ -114,6 +119,15 @@
               {/each}
             </Select.Content>
           </Select.Root>
+        </div>
+        <div class="setting-item">
+          <Label for="system-prompt">System Prompt</Label>
+          <Textarea
+            id="system-prompt"
+            placeholder="You are a helpful assistant..."
+            bind:value={systemPrompt}
+            class="system-prompt-input"
+          />
         </div>
       </section>
 
@@ -204,6 +218,11 @@
 
   .setting-item.row :global(label) {
     margin-bottom: 0;
+  }
+
+  :global(.system-prompt-input) {
+    min-height: 100px;
+    resize: vertical;
   }
 
 .settings-footer {

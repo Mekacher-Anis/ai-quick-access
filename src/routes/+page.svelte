@@ -22,6 +22,7 @@
     selectedModel: string;
     darkMode: boolean;
     autoStart: boolean;
+    systemPrompt: string;
   }
 
   let inputValue = $state("");
@@ -31,6 +32,7 @@
   let hasResized = $state(false);
   let apiKey = $state("");
   let selectedModel = $state("openai/gpt-oss-120b");
+  let systemPrompt = $state("Keep your responses as concise, precise, to the point.\nAnswer the question in as few words as possible.\nNo Yapping.");
   let unlistenNewChat: UnlistenFn | null = null;
   let textareaRef: HTMLTextAreaElement | null = $state(null);
   let unlistenWindowFocus: UnlistenFn | null = null;
@@ -108,6 +110,7 @@
       const settings = await invoke<Settings>("load_settings");
       apiKey = settings.apiKey;
       selectedModel = settings.selectedModel;
+      systemPrompt = settings.systemPrompt || "";
     } catch (error) {
       console.error("Failed to load settings:", error);
     }
@@ -213,10 +216,13 @@
         provider: {
           sort: "throughput",
         },
-        messages: messages.map((m) => ({
-          role: m.role,
-          content: m.content,
-        })),
+        messages: [
+          ...(systemPrompt ? [{ role: "system", content: systemPrompt }] : []),
+          ...messages.map((m) => ({
+            role: m.role,
+            content: m.content,
+          })),
+        ],
       };
 
       // Add web search plugin if using /s command

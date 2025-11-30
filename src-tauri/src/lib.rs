@@ -16,6 +16,8 @@ pub struct Settings {
     pub selected_model: String,
     pub dark_mode: bool,
     pub auto_start: bool,
+    #[serde(default)]
+    pub system_prompt: String,
 }
 
 fn get_config_path() -> Result<PathBuf, String> {
@@ -43,6 +45,7 @@ fn load_settings() -> Result<Settings, String> {
             selected_model: "openai/gpt-oss-120b".to_string(),
             dark_mode: true,
             auto_start: false,
+            system_prompt: "Keep your responses as concise, precise, to the point.\nAnswer the question in as few words as possible.\nNo Yapping.".to_string(),
         });
     }
     
