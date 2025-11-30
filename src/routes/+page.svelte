@@ -32,6 +32,8 @@
   let apiKey = $state("");
   let selectedModel = $state("openai/gpt-oss-120b");
   let unlistenNewChat: UnlistenFn | null = null;
+  let textareaRef: HTMLTextAreaElement | null = $state(null);
+  let unlistenWindowFocus: UnlistenFn | null = null;
 
   // Configure marked options
   marked.setOptions({
@@ -49,6 +51,12 @@
     hasResized = false;
     // Reset window size to initial
     resetWindowSize();
+    // Focus the textarea after starting new chat
+    tick().then(() => textareaRef?.focus());
+  }
+
+  function focusTextarea() {
+    textareaRef?.focus();
   }
 
   async function resetWindowSize() {
@@ -109,13 +117,28 @@
       startNewChat();
     });
 
+    // Listen for window focus events to refocus textarea
+    const appWindow = getCurrentWindow();
+    unlistenWindowFocus = await appWindow.onFocusChanged(({ payload: focused }) => {
+      if (focused && !isLoading) {
+        focusTextarea();
+      }
+    });
+
     // Add local keyboard shortcuts
     window.addEventListener("keydown", handleLocalKeydown);
+
+    // Focus textarea on initial mount
+    await tick();
+    focusTextarea();
   });
 
   onDestroy(() => {
     if (unlistenNewChat) {
       unlistenNewChat();
+    }
+    if (unlistenWindowFocus) {
+      unlistenWindowFocus();
     }
     window.removeEventListener("keydown", handleLocalKeydown);
   });
@@ -304,9 +327,9 @@
       <Textarea
         placeholder="Ask me anything..."
         bind:value={inputValue}
+        bind:ref={textareaRef}
         onkeydown={handleKeydown}
         class="chat-input"
-        autofocus
         disabled={isLoading}
       />
     </div>
@@ -352,7 +375,7 @@
 
   .message {
     display: flex;
-    max-width: 80%;
+    max-width: 100%;
   }
 
   .message.user {

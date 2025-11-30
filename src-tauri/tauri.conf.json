@@ -13,7 +13,7 @@
     "windows": [
       {
         "title": "ai-quick-access",
-        "width": 500,
+        "width": 800,
         "height": 150,
         "decorations": false,
         "transparent": true,
