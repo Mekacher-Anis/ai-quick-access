@@ -2,7 +2,7 @@
   import { Textarea } from "$lib/components/ui/textarea";
   import { Spinner } from "$lib/components/ui/spinner";
   import { Button } from "$lib/components/ui/button";
-  import { tick, onMount } from "svelte";
+  import { tick, onMount, onDestroy } from "svelte";
   import { marked } from "marked";
   import {
     getCurrentWindow,
@@ -10,6 +10,7 @@
     LogicalSize,
   } from "@tauri-apps/api/window";
   import { invoke } from "@tauri-apps/api/core";
+  import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 
   interface Message {
     role: "user" | "assistant";
@@ -30,6 +31,7 @@
   let hasResized = $state(false);
   let apiKey = $state("");
   let selectedModel = $state("openai/gpt-oss-120b");
+  let unlistenNewChat: UnlistenFn | null = null;
 
   // Configure marked options
   marked.setOptions({
@@ -41,6 +43,58 @@
     return marked.parse(content) as string;
   }
 
+  function startNewChat() {
+    messages = [];
+    inputValue = "";
+    hasResized = false;
+    // Reset window size to initial
+    resetWindowSize();
+  }
+
+  async function resetWindowSize() {
+    try {
+      const window = getCurrentWindow();
+      await window.setSize(new LogicalSize(500, 150));
+    } catch (error) {
+      console.error("Failed to reset window size:", error);
+    }
+  }
+
+  async function closeWindow() {
+    try {
+      const window = getCurrentWindow();
+      await window.hide();
+    } catch (error) {
+      console.error("Failed to close window:", error);
+    }
+  }
+
+  async function quitApp() {
+    try {
+      await invoke("quit_app");
+    } catch (error) {
+      console.error("Failed to quit app:", error);
+    }
+  }
+
+  async function handleLocalKeydown(event: KeyboardEvent) {
+    const isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
+    const modifier = isMac ? event.metaKey : event.ctrlKey;
+
+    if (modifier) {
+      if (event.key === "w") {
+        event.preventDefault();
+        await closeWindow();
+      } else if (event.key === "n") {
+        event.preventDefault();
+        startNewChat();
+      } else if (event.key === "q") {
+        event.preventDefault();
+        await quitApp();
+      }
+    }
+  }
+
   onMount(async () => {
     try {
       const settings = await invoke<Settings>("load_settings");
@@ -49,6 +103,21 @@
     } catch (error) {
       console.error("Failed to load settings:", error);
     }
+
+    // Listen for new-chat event from global shortcuts / tray
+    unlistenNewChat = await listen("new-chat", () => {
+      startNewChat();
+    });
+
+    // Add local keyboard shortcuts
+    window.addEventListener("keydown", handleLocalKeydown);
+  });
+
+  onDestroy(() => {
+    if (unlistenNewChat) {
+      unlistenNewChat();
+    }
+    window.removeEventListener("keydown", handleLocalKeydown);
   });
 
   const hasMessages = $derived(messages.length > 0);
@@ -237,6 +306,7 @@
         bind:value={inputValue}
         onkeydown={handleKeydown}
         class="chat-input"
+        autofocus
         disabled={isLoading}
       />
     </div>
