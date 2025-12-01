@@ -306,7 +306,7 @@
   }
 </script>
 
-<main class="container" class:has-messages={hasMessages}>
+<main class="chat-container" class:has-messages={hasMessages}>
   <Button
     variant="ghost"
     size="icon"
@@ -427,7 +427,7 @@
 </main>
 
 <style>
-  .container {
+  .chat-container {
     margin: 0;
     padding: 16px;
     min-height: 100vh;
@@ -449,7 +449,7 @@
     opacity: 1;
   }
 
-  .container.has-messages {
+  .chat-container.has-messages {
     justify-content: flex-end;
   }
 
