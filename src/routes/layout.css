@@ -157,3 +157,17 @@
     background: transparent;
   }
 }
+
+/* Linux-specific window styling (vibrancy not supported) */
+.linux-window {
+  background: var(--background);
+  border-radius: 12px;
+  box-shadow: 0 5px 5px rgba(0, 0, 0, 0.4), 0 0 0 1px var(--border);
+  margin: 12px;
+  overflow: hidden;
+  min-height: calc(100vh - 24px);
+}
+
+.linux-window-inner {
+  min-height: calc(100vh - 24px) !important;
+}

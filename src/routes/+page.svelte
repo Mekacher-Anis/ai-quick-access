@@ -46,10 +46,13 @@
   let hasResized = $state(false);
   let apiKey = $state("");
   let selectedModel = $state("openai/gpt-oss-120b");
-  let systemPrompt = $state("Keep your responses as concise, precise, to the point.\nAnswer the question in as few words as possible.\nNo Yapping.");
+  let systemPrompt = $state(
+    "Keep your responses as concise, precise, to the point.\nAnswer the question in as few words as possible.\nNo Yapping."
+  );
   let unlistenNewChat: UnlistenFn | null = null;
   let textareaRef: HTMLTextAreaElement | null = $state(null);
   let unlistenWindowFocus: UnlistenFn | null = null;
+  let isLinux = $state(false);
 
   // Configure marked options
   marked.setOptions({
@@ -120,6 +123,9 @@
   }
 
   onMount(async () => {
+    // Detect Linux platform for styling (vibrancy not supported on Linux)
+    isLinux = navigator.userAgent.toLowerCase().includes("linux");
+
     try {
       const settings = await invoke<Settings>("load_settings");
       apiKey = settings.apiKey;
@@ -136,11 +142,13 @@
 
     // Listen for window focus events to refocus textarea
     const appWindow = getCurrentWindow();
-    unlistenWindowFocus = await appWindow.onFocusChanged(({ payload: focused }) => {
-      if (focused && !isLoading) {
-        focusTextarea();
+    unlistenWindowFocus = await appWindow.onFocusChanged(
+      ({ payload: focused }) => {
+        if (focused && !isLoading) {
+          focusTextarea();
+        }
       }
-    });
+    );
 
     // Add local keyboard shortcuts
     window.addEventListener("keydown", handleLocalKeydown);
@@ -268,9 +276,15 @@
       const data = await response.json();
       const assistantMessage =
         data.choices[0]?.message?.content || "No response";
-      const annotations = data.choices[0]?.message?.annotations as Annotation[] | undefined;
+      const annotations = data.choices[0]?.message?.annotations as
+        | Annotation[]
+        | undefined;
 
-      messages.push({ role: "assistant", content: assistantMessage, annotations });
+      messages.push({
+        role: "assistant",
+        content: assistantMessage,
+        annotations,
+      });
       await scrollToBottom();
     } catch (error) {
       console.error("Error:", error);
@@ -306,125 +320,157 @@
   }
 </script>
 
-<main class="chat-container" class:has-messages={hasMessages}>
-  <Button
-    variant="ghost"
-    size="icon"
-    class="settings-button"
-    onclick={openSettings}
+<div class:linux-window={isLinux}>
+  <main
+    class="chat-container"
+    class:has-messages={hasMessages}
+    class:linux-window-inner={isLinux}
   >
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="2"
-      stroke-linecap="round"
-      stroke-linejoin="round"
+    <Button
+      variant="ghost"
+      size="icon"
+      class="settings-button"
+      onclick={openSettings}
     >
-      <path
-        d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"
-      />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  </Button>
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path
+          d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"
+        />
+        <circle cx="12" cy="12" r="3" />
+      </svg>
+    </Button>
 
-  {#if hasMessages}
-    <div class="messages-area" bind:this={messagesContainer}>
-      {#each messages as message, index}
-        <div class="message {message.role}">
-          {#if message.role === "assistant"}
-            <div class="message-content prose prose-sm dark:prose-invert max-w-none">
-              {@html renderMarkdown(message.content)}
-              {#if message.annotations && message.annotations.length > 0}
-                <div class="references">
-                  <div class="references-header">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-                      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-                    </svg>
-                    <span>Sources</span>
-                  </div>
-                  <div class="references-list">
-                    {#each message.annotations.filter(a => a.type === "url_citation") as annotation, refIndex}
-                      <a href={annotation.url_citation.url} target="_blank" rel="noopener noreferrer" class="reference-item">
-                        <span class="reference-index">{refIndex + 1}</span>
-                        <span class="reference-title">{annotation.url_citation.title || annotation.url_citation.url}</span>
-                      </a>
-                    {/each}
-                  </div>
-                </div>
-              {/if}
-            </div>
-          {:else}
-            <div class="message-content">
-              {message.content}
-            </div>
-          {/if}
-          <button
-            class="copy-button"
-            onclick={() => copyMessage(message.content, index)}
-            title="Copy message"
-          >
-            {#if copiedIndex === index}
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
+    {#if hasMessages}
+      <div class="messages-area" bind:this={messagesContainer}>
+        {#each messages as message, index}
+          <div class="message {message.role}">
+            {#if message.role === "assistant"}
+              <div
+                class="message-content prose prose-sm dark:prose-invert max-w-none"
               >
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
+                {@html renderMarkdown(message.content)}
+                {#if message.annotations && message.annotations.length > 0}
+                  <div class="references">
+                    <div class="references-header">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <path
+                          d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"
+                        />
+                        <path
+                          d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"
+                        />
+                      </svg>
+                      <span>Sources</span>
+                    </div>
+                    <div class="references-list">
+                      {#each message.annotations.filter((a) => a.type === "url_citation") as annotation, refIndex}
+                        <a
+                          href={annotation.url_citation.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="reference-item"
+                        >
+                          <span class="reference-index">{refIndex + 1}</span>
+                          <span class="reference-title"
+                            >{annotation.url_citation.title ||
+                              annotation.url_citation.url}</span
+                          >
+                        </a>
+                      {/each}
+                    </div>
+                  </div>
+                {/if}
+              </div>
             {:else}
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
-                <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
-              </svg>
+              <div class="message-content">
+                {message.content}
+              </div>
             {/if}
-          </button>
-        </div>
-      {/each}
-      {#if isLoading}
-        <div class="message assistant">
-          <div class="message-content loading">
-            <Spinner class="w-5 h-5" />
-            <span>Thinking...</span>
+            <button
+              class="copy-button"
+              onclick={() => copyMessage(message.content, index)}
+              title="Copy message"
+            >
+              {#if copiedIndex === index}
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              {:else}
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+                  <path
+                    d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"
+                  />
+                </svg>
+              {/if}
+            </button>
           </div>
-        </div>
-      {/if}
-    </div>
-  {/if}
+        {/each}
+        {#if isLoading}
+          <div class="message assistant">
+            <div class="message-content loading">
+              <Spinner class="w-5 h-5" />
+              <span>Thinking...</span>
+            </div>
+          </div>
+        {/if}
+      </div>
+    {/if}
 
-  <div class="input-area" class:centered={!hasMessages}>
-    <div class="input-wrapper">
-      <Textarea
-        placeholder="Ask me anything..."
-        bind:value={inputValue}
-        bind:ref={textareaRef}
-        onkeydown={handleKeydown}
-        class="chat-input"
-        disabled={isLoading}
-      />
+    <div class="input-area" class:centered={!hasMessages}>
+      <div class="input-wrapper">
+        <Textarea
+          placeholder="Ask me anything..."
+          bind:value={inputValue}
+          bind:ref={textareaRef}
+          onkeydown={handleKeydown}
+          class="chat-input"
+          disabled={isLoading}
+        />
+      </div>
     </div>
-  </div>
-</main>
+  </main>
+</div>
 
 <style>
   .chat-container {
