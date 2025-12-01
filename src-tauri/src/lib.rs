@@ -173,7 +173,7 @@ fn create_or_focus_main_window(app: &tauri::AppHandle, new_chat: bool) {
             WebviewUrl::App("/".into()),
         )
         .title("ai-quick-access")
-        .inner_size(500.0, 150.0)
+        .inner_size(800.0, 150.0)
         .decorations(false)
         .build()
         {

@@ -87,7 +87,7 @@
   async function resetWindowSize() {
     try {
       const window = getCurrentWindow();
-      await window.setSize(new LogicalSize(500, 150));
+      await window.setSize(new LogicalSize(800, 150));
     } catch (error) {
       console.error("Failed to reset window size:", error);
     }
