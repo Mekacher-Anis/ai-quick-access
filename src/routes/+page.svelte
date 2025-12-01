@@ -533,11 +533,13 @@
     background: var(--card);
     color: var(--card-foreground);
     border: 1px solid var(--border);
+    white-space: normal;
   }
 
   /* Markdown prose styling overrides */
   .message.assistant .message-content :global(p) {
-    margin: 0.5em 0;
+    margin: 0.25em 0;
+    line-height: 1.5;
   }
 
   .message.assistant .message-content :global(p:first-child) {
@@ -569,13 +571,13 @@
   }
 
   .message.assistant .message-content :global(ul) {
-    margin: 0.5em 0;
+    margin: 0.25em 0;
     padding-left: 1.5em;
     list-style-type: disc;
   }
 
   .message.assistant .message-content :global(ol) {
-    margin: 0.5em 0;
+    margin: 0.25em 0;
     padding-left: 1.5em;
     list-style-type: decimal;
   }
@@ -589,7 +591,7 @@
   }
 
   .message.assistant .message-content :global(li) {
-    margin: 0.25em 0;
+    margin: 0.1em 0;
     display: list-item;
   }
 
@@ -601,7 +603,7 @@
   .message.assistant .message-content :global(blockquote) {
     border-left: 3px solid var(--border);
     padding-left: 1em;
-    margin: 0.5em 0;
+    margin: 0.25em 0;
     color: var(--muted-foreground);
   }
 
@@ -609,7 +611,7 @@
   .message.assistant .message-content :global(h2),
   .message.assistant .message-content :global(h3),
   .message.assistant .message-content :global(h4) {
-    margin: 0.75em 0 0.5em 0;
+    margin: 0.5em 0 0.25em 0;
     font-weight: 600;
   }
 
