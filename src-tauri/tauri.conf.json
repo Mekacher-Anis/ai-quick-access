@@ -32,6 +32,7 @@
         "resizable": false
       }
     ],
+    "macOSPrivateApi": true,
     "security": {
       "csp": null
     }

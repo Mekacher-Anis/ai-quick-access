@@ -166,7 +166,6 @@ fn create_or_focus_main_window(app: &tauri::AppHandle, new_chat: bool) {
         .title("ai-quick-access")
         .inner_size(500.0, 150.0)
         .decorations(false)
-        .transparent(true)
         .build()
         {
             // Position window on the monitor where the mouse is
@@ -180,9 +179,9 @@ fn create_or_focus_main_window(app: &tauri::AppHandle, new_chat: bool) {
             {
                 let _ = window_vibrancy::apply_vibrancy(
                     &window,
-                    window_vibrancy::NSVisualEffectMaterial::HudWindow,
+                    window_vibrancy::NSVisualEffectMaterial::UnderWindowBackground,
                     None,
-                    None,
+                    Some(10.0),
                 );
             }
 
@@ -293,9 +292,9 @@ pub fn run() {
                 #[cfg(target_os = "macos")]
                 window_vibrancy::apply_vibrancy(
                     &main_window,
-                    window_vibrancy::NSVisualEffectMaterial::HudWindow,
+                    window_vibrancy::NSVisualEffectMaterial::UnderWindowBackground,
                     None,
-                    None,
+                    Some(10.0),
                 )
                 .expect("Failed to apply vibrancy to main window");
 
