@@ -16,26 +16,67 @@
     darkMode: boolean;
     autoStart: boolean;
     systemPrompt: string;
+    modelShortcuts: Record<string, string>;
+  }
+
+  interface ShortcutEntry {
+    shortcut: string;
+    model: string;
   }
 
   let apiKey = $state("");
   let selectedModel = $state("openai/gpt-oss-120b");
   let darkMode = $state(true);
   let autoStart = $state(false);
-  let systemPrompt = $state("Keep your responses as concise, precise, to the point.\nAnswer the question in as few words as possible.\nNo Yapping.");
+  let systemPrompt = $state(
+    "Keep your responses as concise, precise, to the point.\nAnswer the question in as few words as possible.\nNo Yapping."
+  );
+  let modelShortcuts = $state<ShortcutEntry[]>([
+    { shortcut: "h", model: "google/gemini-3-pro-preview" },
+    { shortcut: "f", model: "google/gemini-2.5-flash-preview-09-2025" },
+    { shortcut: "o", model: "openai/gpt-oss-120b" },
+  ]);
   let isLoading = $state(true);
   let saveMessage = $state("");
   let showSaveMessage = $state(false);
 
   const models = [
     { value: "openai/gpt-oss-120b", label: "GPT OSS 120B" },
-    { value: "openai/gpt-4o", label: "GPT-4o" },
-    { value: "anthropic/claude-3.5-sonnet", label: "Claude 3.5 Sonnet" },
-    { value: "google/gemini-pro", label: "Gemini Pro" },
+    { value: "openai/gpt-oss-20b", label: "GPT OSS 20B" },
+    {
+      value: "google/gemini-2.5-flash-preview-09-2025",
+      label: "Gemini 2.5 Flash Preview 09-2025",
+    },
+    { value: "google/gemini-3-pro-preview", label: "Gemini 3 Pro Preview" },
   ];
 
   function getModelLabel(value: string): string {
     return models.find((m) => m.value === value)?.label ?? value;
+  }
+
+  function shortcutsToRecord(shortcuts: ShortcutEntry[]): Record<string, string> {
+    const record: Record<string, string> = {};
+    for (const entry of shortcuts) {
+      if (entry.shortcut.trim()) {
+        record[entry.shortcut.trim()] = entry.model;
+      }
+    }
+    return record;
+  }
+
+  function recordToShortcuts(record: Record<string, string>): ShortcutEntry[] {
+    return Object.entries(record).map(([shortcut, model]) => ({
+      shortcut,
+      model,
+    }));
+  }
+
+  function addShortcut() {
+    modelShortcuts = [...modelShortcuts, { shortcut: "", model: models[0].value }];
+  }
+
+  function removeShortcut(index: number) {
+    modelShortcuts = modelShortcuts.filter((_, i) => i !== index);
   }
 
   onMount(async () => {
@@ -46,6 +87,9 @@
       darkMode = settings.darkMode;
       autoStart = settings.autoStart;
       systemPrompt = settings.systemPrompt || "";
+      if (settings.modelShortcuts && Object.keys(settings.modelShortcuts).length > 0) {
+        modelShortcuts = recordToShortcuts(settings.modelShortcuts);
+      }
     } catch (error) {
       console.error("Failed to load settings:", error);
     } finally {
@@ -71,9 +115,17 @@
           darkMode,
           autoStart,
           systemPrompt,
+          modelShortcuts: shortcutsToRecord(modelShortcuts),
         },
       });
-      console.log("Settings saved:", { apiKey, selectedModel, darkMode, autoStart, systemPrompt });
+      console.log("Settings saved:", {
+        apiKey,
+        selectedModel,
+        darkMode,
+        autoStart,
+        systemPrompt,
+        modelShortcuts: shortcutsToRecord(modelShortcuts),
+      });
       saveMessage = "Settings saved successfully!";
       showSaveMessage = true;
       setTimeout(() => {
@@ -129,6 +181,41 @@
             class="system-prompt-input"
           />
         </div>
+        <div class="setting-item">
+          <div class="shortcuts-header">
+            <Label>Model Shortcuts</Label>
+            <Button variant="outline" size="sm" onclick={addShortcut}>+ Add</Button>
+          </div>
+          <p class="shortcuts-hint">Use /shortcut in chat to switch models (e.g., "/s /h" for web search with heavy model)</p>
+          <div class="shortcuts-list">
+            {#each modelShortcuts as entry, index}
+              <div class="shortcut-row">
+                <Input
+                  type="text"
+                  placeholder="shortcut"
+                  bind:value={entry.shortcut}
+                  class="shortcut-input"
+                />
+                <Select.Root type="single" bind:value={entry.model}>
+                  <Select.Trigger class="shortcut-model-select">
+                    {getModelLabel(entry.model)}
+                  </Select.Trigger>
+                  <Select.Content>
+                    {#each models as model}
+                      <Select.Item value={model.value} label={model.label} />
+                    {/each}
+                  </Select.Content>
+                </Select.Root>
+                <Button variant="ghost" size="icon" onclick={() => removeShortcut(index)} class="remove-shortcut-btn">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </Button>
+              </div>
+            {/each}
+          </div>
+        </div>
       </section>
 
       <Separator />
@@ -158,7 +245,7 @@
     </footer>
 
     {#if showSaveMessage}
-      <div class="save-toast" class:error={saveMessage.includes('Failed')}>
+      <div class="save-toast" class:error={saveMessage.includes("Failed")}>
         {saveMessage}
       </div>
     {/if}
@@ -225,7 +312,50 @@
     resize: vertical;
   }
 
-.settings-footer {
+  .shortcuts-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .shortcuts-hint {
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+    margin-bottom: 12px;
+  }
+
+  .shortcuts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .shortcut-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  :global(.shortcut-input) {
+    width: 80px;
+    flex-shrink: 0;
+  }
+
+  :global(.shortcut-model-select) {
+    flex: 1;
+  }
+
+  :global(.remove-shortcut-btn) {
+    flex-shrink: 0;
+    color: var(--muted-foreground);
+  }
+
+  :global(.remove-shortcut-btn:hover) {
+    color: var(--destructive);
+  }
+
+  .settings-footer {
     display: flex;
     justify-content: flex-end;
     gap: 12px;

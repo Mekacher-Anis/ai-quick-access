@@ -9,6 +9,8 @@ use tauri::{
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut};
 use mouse_position::mouse_position::Mouse;
 
+use std::collections::HashMap;
+
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Settings {
@@ -18,6 +20,8 @@ pub struct Settings {
     pub auto_start: bool,
     #[serde(default)]
     pub system_prompt: String,
+    #[serde(default)]
+    pub model_shortcuts: HashMap<String, String>,
 }
 
 fn get_config_path() -> Result<PathBuf, String> {
@@ -40,12 +44,17 @@ fn load_settings() -> Result<Settings, String> {
     
     if !config_path.exists() {
         // Return default settings if file doesn't exist
+        let mut default_shortcuts = HashMap::new();
+        default_shortcuts.insert("h".to_string(), "google/gemini-3-pro-preview".to_string());
+        default_shortcuts.insert("f".to_string(), "google/gemini-2.5-flash-preview-09-2025".to_string());
+        default_shortcuts.insert("o".to_string(), "openai/gpt-oss-120b".to_string());
         return Ok(Settings {
             api_key: String::new(),
             selected_model: "openai/gpt-oss-120b".to_string(),
             dark_mode: true,
             auto_start: false,
             system_prompt: "Keep your responses as concise, precise, to the point.\nAnswer the question in as few words as possible.\nNo Yapping.".to_string(),
+            model_shortcuts: default_shortcuts,
         });
     }
     

@@ -37,6 +37,7 @@
     darkMode: boolean;
     autoStart: boolean;
     systemPrompt: string;
+    modelShortcuts: Record<string, string>;
   }
 
   let inputValue = $state("");
@@ -49,6 +50,11 @@
   let systemPrompt = $state(
     "Keep your responses as concise, precise, to the point.\nAnswer the question in as few words as possible.\nNo Yapping."
   );
+  let modelShortcuts = $state<Record<string, string>>({
+    h: "google/gemini-3-pro-preview",
+    f: "google/gemini-2.5-flash-preview-09-2025",
+    o: "openai/gpt-oss-120b",
+  });
   let unlistenNewChat: UnlistenFn | null = null;
   let textareaRef: HTMLTextAreaElement | null = $state(null);
   let unlistenWindowFocus: UnlistenFn | null = null;
@@ -131,6 +137,9 @@
       apiKey = settings.apiKey;
       selectedModel = settings.selectedModel;
       systemPrompt = settings.systemPrompt || "";
+      if (settings.modelShortcuts && Object.keys(settings.modelShortcuts).length > 0) {
+        modelShortcuts = settings.modelShortcuts;
+      }
     } catch (error) {
       console.error("Failed to load settings:", error);
     }
@@ -203,9 +212,35 @@
     const rawContent = inputValue.trim();
     if (!rawContent || isLoading) return;
 
-    // Check for web search command
-    const useWebSearch = rawContent.startsWith("/s ");
-    const content = useWebSearch ? rawContent.slice(3).trim() : rawContent;
+    // Parse commands from input
+    // Commands start with "/" and can be chained (e.g., "/s /h hello world")
+    let useWebSearch = false;
+    let modelToUse = selectedModel;
+    let content = rawContent;
+
+    // Extract all commands at the beginning
+    const commandRegex = /^(\/\w+\s*)+/;
+    const commandMatch = content.match(commandRegex);
+    
+    if (commandMatch) {
+      const commandsStr = commandMatch[0];
+      content = content.slice(commandsStr.length).trim();
+      
+      // Parse individual commands
+      const commands = commandsStr.match(/\/(\w+)/g) || [];
+      
+      for (const cmd of commands) {
+        const shortcut = cmd.slice(1); // Remove the "/"
+        
+        if (shortcut === "s") {
+          // Web search command
+          useWebSearch = true;
+        } else if (modelShortcuts[shortcut]) {
+          // Model shortcut
+          modelToUse = modelShortcuts[shortcut];
+        }
+      }
+    }
 
     if (!content) return;
 
@@ -234,7 +269,7 @@
 
       // Build request body
       const requestBody: Record<string, unknown> = {
-        model: useWebSearch ? `${selectedModel}:online` : selectedModel,
+        model: useWebSearch ? `${modelToUse}:online` : modelToUse,
         provider: {
           sort: "throughput",
         },
