@@ -7,6 +7,7 @@ use tauri::{
     Emitter, Manager, PhysicalPosition, WebviewUrl, WebviewWindowBuilder,
 };
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut};
+use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
 use mouse_position::mouse_position::Mouse;
 
 use std::collections::HashMap;
@@ -40,6 +41,25 @@ fn ensure_config_dir() -> Result<(), String> {
     Ok(())
 }
 
+fn sync_launch_at_startup(app: &tauri::AppHandle, enable: bool) -> Result<(), String> {
+    let autolaunch = app.autolaunch();
+    let currently_enabled = autolaunch
+        .is_enabled()
+        .map_err(|e| format!("Failed to read launch at startup state: {}", e))?;
+
+    if enable && !currently_enabled {
+        autolaunch
+            .enable()
+            .map_err(|e| format!("Failed to enable launch at startup: {}", e))?;
+    } else if !enable && currently_enabled {
+        autolaunch
+            .disable()
+            .map_err(|e| format!("Failed to disable launch at startup: {}", e))?;
+    }
+
+    Ok(())
+}
+
 #[tauri::command]
 fn load_settings() -> Result<Settings, String> {
     let config_path = get_config_path()?;
@@ -69,7 +89,7 @@ fn load_settings() -> Result<Settings, String> {
 }
 
 #[tauri::command]
-fn save_settings(settings: Settings) -> Result<(), String> {
+fn save_settings(app: tauri::AppHandle, settings: Settings) -> Result<(), String> {
     ensure_config_dir()?;
     let config_path = get_config_path()?;
     
@@ -78,6 +98,8 @@ fn save_settings(settings: Settings) -> Result<(), String> {
     
     fs::write(&config_path, contents)
         .map_err(|e| format!("Failed to write config file: {}", e))?;
+
+    sync_launch_at_startup(&app, settings.auto_start)?;
     
     Ok(())
 }
@@ -293,8 +315,24 @@ pub fn run() {
                 })
                 .build(),
         )
+            .plugin(tauri_plugin_autostart::init(
+                MacosLauncher::LaunchAgent,
+                None,
+            ))
         .invoke_handler(tauri::generate_handler![greet, open_settings, load_settings, save_settings, quit_app, resize_window, reset_window])
         .setup(|app| {
+            match load_settings() {
+                Ok(settings) => {
+                    let app_handle = app.handle();
+                    if let Err(err) = sync_launch_at_startup(&app_handle, settings.auto_start) {
+                        eprintln!("Failed to sync launch at startup setting: {}", err);
+                    }
+                }
+                Err(err) => {
+                    eprintln!("Failed to load settings during startup sync: {}", err);
+                }
+            }
+
             // Register global shortcuts based on OS
             #[cfg(target_os = "macos")]
             let mod_key = Modifiers::SUPER;
