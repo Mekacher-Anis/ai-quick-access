@@ -8,6 +8,7 @@
     getCurrentWindow,
     currentMonitor,
     LogicalSize,
+    PhysicalSize,
   } from "@tauri-apps/api/window";
   import { invoke } from "@tauri-apps/api/core";
   import { listen, type UnlistenFn } from "@tauri-apps/api/event";
@@ -86,8 +87,7 @@
 
   async function resetWindowSize() {
     try {
-      const window = getCurrentWindow();
-      await window.setSize(new LogicalSize(800, 150));
+      await invoke("reset_window");
     } catch (error) {
       console.error("Failed to reset window size:", error);
     }
@@ -187,15 +187,8 @@
     if (hasResized) return;
 
     try {
-      const monitor = await currentMonitor();
-      if (monitor) {
-        const screenHeight = monitor.size.height;
-        const newHeight = Math.round(screenHeight * 0.7);
-        const window = getCurrentWindow();
-        const currentSize = await window.innerSize();
-        await window.setSize(new LogicalSize(currentSize.width, newHeight));
-        hasResized = true;
-      }
+      await invoke("resize_window", { heightPercentage: 0.7 });
+      hasResized = true;
     } catch (error) {
       console.error("Failed to resize window:", error);
     }

@@ -99,6 +99,65 @@ async fn quit_app(app: tauri::AppHandle) {
     app.exit(0);
 }
 
+#[tauri::command]
+async fn resize_window(app: tauri::AppHandle, height_percentage: f64) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window("main") {
+        if let Ok(Some(monitor)) = window.current_monitor() {
+            let size = monitor.size();
+            let new_height = (size.height as f64 * height_percentage).round() as u32;
+            let current_size = window.inner_size().map_err(|e| e.to_string())?;
+            
+            // Resize
+            window.set_size(tauri::Size::Physical(tauri::PhysicalSize {
+                width: current_size.width,
+                height: new_height,
+            })).map_err(|e| e.to_string())?;
+            
+            // Center
+            let monitor_pos = monitor.position();
+            let monitor_size = monitor.size();
+            
+            let x = monitor_pos.x + ((monitor_size.width as i32 - current_size.width as i32) / 2);
+            let y = monitor_pos.y + ((monitor_size.height as i32 - new_height as i32) / 2);
+            
+            window.set_position(tauri::Position::Physical(tauri::PhysicalPosition {
+                x,
+                y
+            })).map_err(|e| e.to_string())?;
+        }
+    }
+    Ok(())
+}
+
+#[tauri::command]
+async fn reset_window(app: tauri::AppHandle) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window("main") {
+        // Set size to 800x150
+        window.set_size(tauri::Size::Logical(tauri::LogicalSize {
+            width: 800.0,
+            height: 150.0,
+        })).map_err(|e| e.to_string())?;
+        
+        // Center
+        if let Ok(Some(monitor)) = window.current_monitor() {
+             let monitor_pos = monitor.position();
+             let monitor_size = monitor.size();
+             let scale_factor = monitor.scale_factor();
+             let width_physical = (800.0 * scale_factor) as i32;
+             let height_physical = (150.0 * scale_factor) as i32;
+             
+             let x = monitor_pos.x + ((monitor_size.width as i32 - width_physical) / 2);
+             let y = monitor_pos.y + ((monitor_size.height as i32 - height_physical) / 2);
+             
+             window.set_position(tauri::Position::Physical(tauri::PhysicalPosition {
+                 x,
+                 y
+             })).map_err(|e| e.to_string())?;
+        }
+    }
+    Ok(())
+}
+
 fn get_mouse_position() -> Option<(i32, i32)> {
     match Mouse::get_mouse_position() {
         Mouse::Position { x, y } => Some((x, y)),
@@ -231,7 +290,7 @@ pub fn run() {
                 })
                 .build(),
         )
-        .invoke_handler(tauri::generate_handler![greet, open_settings, load_settings, save_settings, quit_app])
+        .invoke_handler(tauri::generate_handler![greet, open_settings, load_settings, save_settings, quit_app, resize_window, reset_window])
         .setup(|app| {
             // Register global shortcuts based on OS
             #[cfg(target_os = "macos")]
