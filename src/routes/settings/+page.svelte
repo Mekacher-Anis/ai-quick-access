@@ -17,6 +17,7 @@
     autoStart: boolean;
     systemPrompt: string;
     modelShortcuts: Record<string, string>;
+    sendOnEnter: boolean;
   }
 
   interface ShortcutEntry {
@@ -28,6 +29,7 @@
   let selectedModel = $state("openai/gpt-oss-120b");
   let darkMode = $state(true);
   let autoStart = $state(false);
+  let sendOnEnter = $state(false);
   let systemPrompt = $state(
     "Keep your responses as concise, precise, to the point.\nAnswer the question in as few words as possible.\nNo Yapping."
   );
@@ -90,6 +92,7 @@
       if (settings.modelShortcuts && Object.keys(settings.modelShortcuts).length > 0) {
         modelShortcuts = recordToShortcuts(settings.modelShortcuts);
       }
+      sendOnEnter = settings.sendOnEnter ?? false;
     } catch (error) {
       console.error("Failed to load settings:", error);
     } finally {
@@ -114,6 +117,7 @@
           selectedModel,
           darkMode,
           autoStart,
+          sendOnEnter,
           systemPrompt,
           modelShortcuts: shortcutsToRecord(modelShortcuts),
         },
@@ -123,6 +127,7 @@
         selectedModel,
         darkMode,
         autoStart,
+        sendOnEnter,
         systemPrompt,
         modelShortcuts: shortcutsToRecord(modelShortcuts),
       });
@@ -236,6 +241,13 @@
           <Label for="auto-start">Launch at startup</Label>
           <Switch id="auto-start" bind:checked={autoStart} />
         </div>
+        <div class="setting-item row">
+          <Label for="send-on-enter">Send message on Enter</Label>
+          <Switch id="send-on-enter" bind:checked={sendOnEnter} />
+        </div>
+        <p class="setting-hint">
+          When enabled, Enter sends your message and Shift+Enter creates a new line.
+        </p>
       </section>
     </main>
 
@@ -323,6 +335,12 @@
     font-size: 0.75rem;
     color: var(--muted-foreground);
     margin-bottom: 12px;
+  }
+
+  .setting-hint {
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+    margin: 4px 0 16px;
   }
 
   .shortcuts-list {

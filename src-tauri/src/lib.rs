@@ -22,6 +22,8 @@ pub struct Settings {
     pub system_prompt: String,
     #[serde(default)]
     pub model_shortcuts: HashMap<String, String>,
+    #[serde(default)]
+    pub send_on_enter: bool,
 }
 
 fn get_config_path() -> Result<PathBuf, String> {
@@ -55,6 +57,7 @@ fn load_settings() -> Result<Settings, String> {
             auto_start: false,
             system_prompt: "Keep your responses as concise, precise, to the point.\nAnswer the question in as few words as possible.\nNo Yapping.".to_string(),
             model_shortcuts: default_shortcuts,
+            send_on_enter: false,
         });
     }
     

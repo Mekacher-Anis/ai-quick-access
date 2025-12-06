@@ -39,6 +39,7 @@
     autoStart: boolean;
     systemPrompt: string;
     modelShortcuts: Record<string, string>;
+    sendOnEnter: boolean;
   }
 
   let inputValue = $state("");
@@ -56,6 +57,7 @@
     f: "google/gemini-2.5-flash-preview-09-2025",
     o: "openai/gpt-oss-120b",
   });
+  let sendOnEnter = $state(false);
   let unlistenNewChat: UnlistenFn | null = null;
   let textareaRef: HTMLTextAreaElement | null = $state(null);
   let unlistenWindowFocus: UnlistenFn | null = null;
@@ -140,6 +142,7 @@
       if (settings.modelShortcuts && Object.keys(settings.modelShortcuts).length > 0) {
         modelShortcuts = settings.modelShortcuts;
       }
+      sendOnEnter = settings.sendOnEnter ?? false;
     } catch (error) {
       console.error("Failed to load settings:", error);
     }
@@ -327,7 +330,17 @@
   }
 
   function handleKeydown(event: KeyboardEvent) {
-    if (event.key === "Enter" && event.shiftKey) {
+    if (event.key !== "Enter" || event.isComposing) {
+      return;
+    }
+
+    if (sendOnEnter && !event.shiftKey) {
+      event.preventDefault();
+      sendMessage();
+      return;
+    }
+
+    if (!sendOnEnter && event.shiftKey) {
       event.preventDefault();
       sendMessage();
     }
