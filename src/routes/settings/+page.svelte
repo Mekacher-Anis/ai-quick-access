@@ -42,15 +42,37 @@
   let saveMessage = $state("");
   let showSaveMessage = $state(false);
 
-  const models = [
+  let models = $state([
     { value: "openai/gpt-oss-120b", label: "GPT OSS 120B" },
     { value: "openai/gpt-oss-20b", label: "GPT OSS 20B" },
     {
       value: "google/gemini-3-flash-preview",
-      label: "Gemini 2.5 Flash Preview 09-2025",
+      label: "Gemini 3 Flash",
     },
     { value: "google/gemini-3-pro-preview", label: "Gemini 3 Pro Preview" },
-  ];
+  ]);
+
+  async function fetchModels() {
+    if (!apiKey) return;
+    try {
+      const response = await fetch("https://openrouter.ai/api/v1/models", {
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+        },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const fetchedModels = data.data.map((m: any) => ({
+          value: m.id,
+          label: m.name,
+        }));
+        fetchedModels.sort((a: any, b: any) => a.label.localeCompare(b.label));
+        models = fetchedModels;
+      }
+    } catch (error) {
+      console.error("Failed to fetch models:", error);
+    }
+  }
 
   function getModelLabel(value: string): string {
     return models.find((m) => m.value === value)?.label ?? value;
@@ -85,6 +107,9 @@
     try {
       const settings = await invoke<Settings>("load_settings");
       apiKey = settings.apiKey;
+      if (apiKey) {
+        fetchModels();
+      }
       selectedModel = settings.selectedModel;
       darkMode = settings.darkMode;
       autoStart = settings.autoStart;
@@ -157,12 +182,22 @@
         <h2>API Configuration</h2>
         <div class="setting-item">
           <Label for="api-key">OpenRouter API Key</Label>
-          <Input
-            id="api-key"
-            type="password"
-            placeholder="sk-or-v1-..."
-            bind:value={apiKey}
-          />
+          <div class="api-key-row">
+            <Input
+              id="api-key"
+              type="password"
+              placeholder="sk-or-v1-..."
+              bind:value={apiKey}
+            />
+            <Button variant="outline" size="icon" onclick={fetchModels} title="Refresh Models">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                <path d="M3 3v5h5"/>
+                <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+                <path d="M16 21h5v-5"/>
+              </svg>
+            </Button>
+          </div>
         </div>
         <div class="setting-item">
           <Label for="model">Model</Label>
@@ -371,6 +406,11 @@
 
   :global(.remove-shortcut-btn:hover) {
     color: var(--destructive);
+  }
+
+  .api-key-row {
+    display: flex;
+    gap: 8px;
   }
 
   .settings-footer {
