@@ -54,7 +54,7 @@
   );
   let modelShortcuts = $state<Record<string, string>>({
     h: "google/gemini-3-pro-preview",
-    f: "google/gemini-2.5-flash-preview-09-2025",
+    f: "google/gemini-3-flash-preview",
     o: "openai/gpt-oss-120b",
   });
   let sendOnEnter = $state(false);

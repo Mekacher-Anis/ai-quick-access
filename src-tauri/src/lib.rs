@@ -68,7 +68,7 @@ fn load_settings() -> Result<Settings, String> {
         // Return default settings if file doesn't exist
         let mut default_shortcuts = HashMap::new();
         default_shortcuts.insert("h".to_string(), "google/gemini-3-pro-preview".to_string());
-        default_shortcuts.insert("f".to_string(), "google/gemini-2.5-flash-preview-09-2025".to_string());
+        default_shortcuts.insert("f".to_string(), "google/gemini-3-flash-preview".to_string());
         default_shortcuts.insert("o".to_string(), "openai/gpt-oss-120b".to_string());
         return Ok(Settings {
             api_key: String::new(),

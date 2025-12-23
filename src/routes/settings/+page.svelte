@@ -35,7 +35,7 @@
   );
   let modelShortcuts = $state<ShortcutEntry[]>([
     { shortcut: "h", model: "google/gemini-3-pro-preview" },
-    { shortcut: "f", model: "google/gemini-2.5-flash-preview-09-2025" },
+    { shortcut: "f", model: "google/gemini-3-flash-preview" },
     { shortcut: "o", model: "openai/gpt-oss-120b" },
   ]);
   let isLoading = $state(true);
@@ -46,7 +46,7 @@
     { value: "openai/gpt-oss-120b", label: "GPT OSS 120B" },
     { value: "openai/gpt-oss-20b", label: "GPT OSS 20B" },
     {
-      value: "google/gemini-2.5-flash-preview-09-2025",
+      value: "google/gemini-3-flash-preview",
       label: "Gemini 2.5 Flash Preview 09-2025",
     },
     { value: "google/gemini-3-pro-preview", label: "Gemini 3 Pro Preview" },
