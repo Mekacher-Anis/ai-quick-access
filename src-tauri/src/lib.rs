@@ -280,7 +280,16 @@ fn create_or_focus_main_window(app: &tauri::AppHandle, new_chat: bool) {
 
             #[cfg(target_os = "windows")]
             {
-                let _ = window_vibrancy::apply_blur(&window, Some((18, 18, 18, 125)));
+                let _ = window_vibrancy::apply_acrylic(&window, Some((18, 18, 18, 125)));
+
+                // Hide to tray instead of closing on Windows
+                let window_clone = window.clone();
+                window.on_window_event(move |event| {
+                    if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                        api.prevent_close();
+                        let _ = window_clone.hide();
+                    }
+                });
             }
 
             if new_chat {
@@ -395,7 +404,7 @@ pub fn run() {
                 })
                 .build(app)?;
 
-            // Apply vibrancy to main window
+            // Apply vibrancy to main window and set up close handler
             #[allow(unused_variables)]
             if let Some(main_window) = app.get_webview_window("main") {
                 #[cfg(target_os = "macos")]
@@ -408,8 +417,36 @@ pub fn run() {
                 .expect("Failed to apply vibrancy to main window");
 
                 #[cfg(target_os = "windows")]
-                window_vibrancy::apply_blur(&main_window, Some((18, 18, 18, 125)))
-                    .expect("Failed to apply blur to main window");
+                window_vibrancy::apply_acrylic(&main_window, Some((18, 18, 18, 125)))
+                    .expect("Failed to apply acrylic to main window");
+
+                // On Windows, hide to tray instead of closing
+                #[cfg(target_os = "windows")]
+                {
+                    let window = main_window.clone();
+                    main_window.on_window_event(move |event| {
+                        if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                            // Prevent the window from closing
+                            api.prevent_close();
+                            // Hide the window instead
+                            let _ = window.hide();
+                        }
+                    });
+                }
+            }
+
+            // Set up close handler for settings window on Windows
+            #[cfg(target_os = "windows")]
+            if let Some(settings_window) = app.get_webview_window("settings") {
+                let window = settings_window.clone();
+                settings_window.on_window_event(move |event| {
+                    if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                        // Prevent the window from closing
+                        api.prevent_close();
+                        // Hide the window instead
+                        let _ = window.hide();
+                    }
+                });
             }
 
             Ok(())
